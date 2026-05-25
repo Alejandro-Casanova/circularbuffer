@@ -14,6 +14,7 @@ using std::mutex;
 
 #ifdef CIRCULAR_BUFFER_ENABLE_EXCEPTIONS
 #include <stdexcept>
+using std::length_error, std::out_of_range;
 #else
 #include <cassert>
 #endif // CIRCULAR_BUFFER_ENABLE_EXCEPTIONS
@@ -22,17 +23,46 @@ using std::mutex;
 using std::array;
 #include <iterator>
 using std::random_access_iterator_tag;
+#include <type_traits>
+using std::conditional;
+#include <utility>
+using std::move;
 
 // Unused includes??
 // #include <algorithm>
 // #include <memory>
-// #include <utility>
+
+#ifdef USING_FREERTOS
+class FreeRTOSMutexWrapper {
+public:
+   explicit FreeRTOSMutexWrapper() {
+      _mtx = xSemaphoreCreateMutexStatic(&_mtx_buf);
+      configASSERT(_mtx);
+   }
+
+   ~FreeRTOSMutexWrapper() {
+      vSemaphoreDelete(_mtx);
+   }
+
+   void lock()
+   {
+      xSemaphoreTake(_mtx, portMAX_DELAY);
+   }
+   void unlock()
+   {
+      xSemaphoreGive(_mtx);
+   }
+
+private:
+   SemaphoreHandle_t _mtx;
+   StaticSemaphore_t _mtx_buf;
+};
+#endif // USING_FREERTOS
 
    
 template<typename T, size_t N>
 class CircularBuffer {
 private:
-	
 	using pointer = T*;
 	using const_pointer = const T*;
 	using reference = T&;
@@ -40,33 +70,6 @@ private:
 	using difference_type = ptrdiff_t;
 
    template <bool isConst> struct BufferIterator;
-
-#ifdef USING_FREERTOS
-   class FreeRTOSMutexWrapper {
-   public:
-      explicit FreeRTOSMutexWrapper() {
-         _mtx = xSemaphoreCreateMutexStatic(&_mtx_buf);
-         configASSERT(_mtx);
-      }
-
-      ~FreeRTOSMutexWrapper() {
-         vSemaphoreDelete(_mtx);
-      }
-
-      void lock()
-      {
-         xSemaphoreTake(_mtx, portMAX_DELAY);
-      }
-      void unlock()
-      {
-         xSemaphoreGive(_mtx);
-      }
-
-   private:
-      SemaphoreHandle_t _mtx;
-      StaticSemaphore_t _mtx_buf;
-   };
-#endif // USING_FREERTOS
 	
 public:
    using value_type = T;
