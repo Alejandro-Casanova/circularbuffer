@@ -1,8 +1,7 @@
 #include "circular_buffer.h"
 #include "gtest/gtest.h"
-#include <string.h>
-#include <utility>
 
+#include <utility>
 
 #define TEST_BUFFER_SIZE 100
 #define REDUCE_SIZE 100

@@ -2,7 +2,6 @@
 #include "gtest/gtest.h"
 #include <algorithm>
 #include <string>
-#include <utility>
 
 #define TEST_BUFFER_SIZE 100
 #define REDUCE_SIZE 50
