@@ -83,6 +83,7 @@ public:
 
   CircularBuffer() = default;
 
+  // Delete move and copy operations
   CircularBuffer(const CircularBuffer &) = delete;
   CircularBuffer &operator=(const CircularBuffer &) = delete;
   CircularBuffer(CircularBuffer &&) = delete;
@@ -473,7 +474,7 @@ public:
   friend class CircularBuffer<T, N>;
 
 private:
-  bool _comparable(const CBufferIterator<T, N, isConst> &other) const
+  bool _comparable(const CBufferIterator &other) const
   {
     return (_ptrToBuffer == other._ptrToBuffer) && (_reverse == other._reverse);
   }
@@ -485,10 +486,6 @@ private:
 
 public:
   CBufferIterator() = default;
-
-  CBufferIterator(const CBufferIterator<T, N> &it)
-    : _ptrToBuffer{ it._ptrToBuffer }, _offset{ it._offset }, _index{ it._index }, _reverse{ it._reverse }
-  {}
 
   reference operator*()
   {
@@ -542,7 +539,6 @@ public:
     rhsiter._index += n;
     return rhsiter;
   }
-
 
   CBufferIterator &operator+=(difference_type n)
   {
