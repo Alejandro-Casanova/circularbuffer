@@ -448,7 +448,7 @@ private:
   friend class CircularBuffer<T, N>;
 
 public:
-  reference operator*()
+  reference operator*() const
   {
     if constexpr (isReverse) {
       return (*_ptrToBuffer)[(_ptrToBuffer->size() - _index - 1)];
@@ -457,9 +457,9 @@ public:
     }
   }
 
-  pointer operator->() { return &(operator*()); }
+  pointer operator->() const { return &(operator*()); }
 
-  reference operator[](size_t index)
+  reference operator[](size_t index) const
   {
     auto iter = *this;
     iter._index += index;
