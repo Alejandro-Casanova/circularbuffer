@@ -397,7 +397,7 @@ public:
   
   using cbuf              = CircularBuffer<value_type, N>;
   using cbuf_pointer      = typename std::conditional<isConst, const cbuf *, cbuf *>::type;
-  using size_type         = cbuf::size_type;
+  using size_type         = typename cbuf::size_type;
 
 private:
   CBufferIterator(cbuf_pointer ptrToBuffer, size_type offset) : _ptrToBuffer{ ptrToBuffer }, _offset{ offset } {}
