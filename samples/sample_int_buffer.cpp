@@ -1,8 +1,8 @@
 #include "circular_buffer.h"
-#include <iostream>
-#include <string.h>
 
-int main(int argc, char *argv[])
+#include <iostream>
+
+int main(int, char *[])
 {
   // Initializing a buffer
   CircularBuffer<int, 5> int_buff;

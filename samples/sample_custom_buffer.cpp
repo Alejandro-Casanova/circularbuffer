@@ -1,9 +1,7 @@
 #include "circular_buffer.h"
+
 #include <iostream>
 #include <string.h>
-#include <vector>
-#include <thread>
-#include <chrono>
 
 struct custom_struct
 {
@@ -65,7 +63,7 @@ struct custom_struct
 int custom_struct::count = 0;
 
 
-int main(int argc, char *argv[])
+int main(int, char *[])
 {
   CircularBuffer<custom_struct, 5> custom_buffer;
   custom_struct element;

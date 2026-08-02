@@ -1,9 +1,10 @@
 #include "circular_buffer.h"
+
 #include <iostream>
-#include <string.h>
+#include <string>
 #include <utility>
 
-int main(int argc, char *argv[])
+int main(int, char *[])
 {
   CircularBuffer<std::string, 10> string_buff;
   // checking buffer empty function
