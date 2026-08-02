@@ -145,11 +145,13 @@ private:
       assert(false && "Index is out of Range of buffer size");
 #endif
     }
-    return (index + _begin) % N;
+    return (_begin + index) % N;
   }
 
-  // friend iterator;
-  // friend const_iterator;
+  friend iterator;
+  friend const_iterator;
+  friend reverse_iterator;
+  friend const_reverse_iterator;
 };
 
 template<typename T, std::size_t N> 
@@ -174,7 +176,7 @@ inline void CircularBuffer<T, N>::clear()
 }
 
 template<typename T, std::size_t N>
-inline size_t CircularBuffer<T, N>::size() const
+inline typename CircularBuffer<T, N>::size_type CircularBuffer<T, N>::size() const
 {
   std::lock_guard _lck(_mtx);
   return _size;
@@ -317,110 +319,70 @@ template<typename T, std::size_t N>
 inline typename CircularBuffer<T, N>::iterator CircularBuffer<T, N>::begin()
 {
   std::lock_guard _lck(_mtx);
-  iterator iter;
-  iter._ptrToBuffer = this;
-  iter._offset = _begin;
-  iter._index = 0;
-  return iter;
+  return iterator{ this, 0 };
 }
 
 template<typename T, std::size_t N>
 inline typename CircularBuffer<T, N>::const_iterator CircularBuffer<T, N>::begin() const
 {
   std::lock_guard _lck(_mtx);
-  const_iterator iter;
-  iter._ptrToBuffer = this;
-  iter._offset = _begin;
-  iter._index = 0;
-  return iter;
+  return const_iterator{ this, 0 };
 }
 
 template<typename T, std::size_t N>
 inline typename CircularBuffer<T, N>::iterator CircularBuffer<T, N>::end()
 {
   std::lock_guard _lck(_mtx);
-  iterator iter;
-  iter._ptrToBuffer = this;
-  iter._offset = _begin;
-  iter._index = _size;
-  return iter;
+  return iterator{ this, _size };
 }
 
 template<typename T, std::size_t N>
 inline typename CircularBuffer<T, N>::const_iterator CircularBuffer<T, N>::end() const
 {
   std::lock_guard _lck(_mtx);
-  const_iterator iter;
-  iter._ptrToBuffer = this;
-  iter._offset = _begin;
-  iter._index = _size;
-  return iter;
+  return const_iterator{ this, _size };
 }
 
 template<typename T, std::size_t N>
 inline typename CircularBuffer<T, N>::const_iterator CircularBuffer<T, N>::cbegin() const noexcept
 {
   std::lock_guard _lck(_mtx);
-  const_iterator iter;
-  iter._ptrToBuffer = this;
-  iter._offset = _begin;
-  iter._index = 0;
-  return iter;
+  return const_iterator{ this, 0 };
 }
 
 template<typename T, std::size_t N>
 inline typename CircularBuffer<T, N>::const_iterator CircularBuffer<T, N>::cend() const noexcept
 {
   std::lock_guard _lck(_mtx);
-  const_iterator iter;
-  iter._ptrToBuffer = this;
-  iter._offset = _begin;
-  iter._index = _size;
-  return iter;
+  return const_iterator{ this, _size };
 }
 
 template<typename T, std::size_t N>
 inline typename CircularBuffer<T, N>::reverse_iterator CircularBuffer<T, N>::rbegin() noexcept
 {
   std::lock_guard _lck(_mtx);
-  reverse_iterator iter;
-  iter._ptrToBuffer = this;
-  iter._offset = _begin;
-  iter._index = 0;
-  return iter;
+  return reverse_iterator{ this, 0 };
 }
 
 template<typename T, std::size_t N>
 inline typename CircularBuffer<T, N>::const_reverse_iterator CircularBuffer<T, N>::rbegin() const noexcept
 {
   std::lock_guard _lck(_mtx);
-  const_reverse_iterator iter;
-  iter._ptrToBuffer = this;
-  iter._offset = _begin;
-  iter._index = 0;
-  return iter;
+  return const_reverse_iterator{ this, 0 };
 }
 
 template<typename T, std::size_t N>
 inline typename CircularBuffer<T, N>::reverse_iterator CircularBuffer<T, N>::rend() noexcept
 {
   std::lock_guard _lck(_mtx);
-  reverse_iterator iter;
-  iter._ptrToBuffer = this;
-  iter._offset = _begin;
-  iter._index = _size;
-  return iter;
+  return reverse_iterator{ this, _size };
 }
 
 template<typename T, std::size_t N>
 inline typename CircularBuffer<T, N>::const_reverse_iterator CircularBuffer<T, N>::rend() const noexcept
 {
   std::lock_guard _lck(_mtx);
-  const_reverse_iterator iter;
-  iter._ptrToBuffer = this;
-  iter._offset = _begin;
-  iter._index = _size;
-  return iter;
+  return const_reverse_iterator{ this, _size };
 }
 
 template<typename T, std::size_t N, bool isConst, bool isReverse>
@@ -435,15 +397,16 @@ public:
   
   using cbuf              = CircularBuffer<value_type, N>;
   using cbuf_pointer      = typename std::conditional<isConst, const cbuf *, cbuf *>::type;
-
-  CBufferIterator() = default;
+  using size_type         = cbuf::size_type;
 
 private:
-  bool _comparable(const CBufferIterator &other) const { return (_ptrToBuffer == other._ptrToBuffer); }
+  CBufferIterator(cbuf_pointer ptrToBuffer, size_type offset) : _ptrToBuffer{ ptrToBuffer }, _offset{ offset } {}
 
-  cbuf_pointer _ptrToBuffer = nullptr;
-  std::size_t _offset = 0;
-  std::size_t _index = 0;
+  bool _comparable(const CBufferIterator &other) const { return (_ptrToBuffer == other._ptrToBuffer); }
+  size_type _begin() const { return _ptrToBuffer->_begin; }
+
+  cbuf_pointer _ptrToBuffer;
+  size_type _offset;
 
   friend class CircularBuffer<T, N>;
 
@@ -451,9 +414,9 @@ public:
   reference operator*() const
   {
     if constexpr (isReverse) {
-      return (*_ptrToBuffer)[(_ptrToBuffer->size() - _index - 1)];
+      return (*_ptrToBuffer)[(_ptrToBuffer->size() - _offset - 1)];
     } else {
-      return (*_ptrToBuffer)[_index];
+      return (*_ptrToBuffer)[_offset];
     }
   }
 
@@ -462,69 +425,68 @@ public:
   reference operator[](size_t index) const
   {
     auto iter = *this;
-    iter._index += index;
+    iter._offset += index;
     return *iter;
   }
 
   CBufferIterator &operator++()
   {
-    ++_index;
+    ++_offset;
     return *this;
   }
 
   CBufferIterator operator++(int)
   {
     auto clone = *this;
-    ++_index;
+    ++_offset;
     return clone;
   }
 
   CBufferIterator &operator--()
   {
-    --_index;
+    --_offset;
     return *this;
   }
 
   CBufferIterator operator--(int)
   {
     auto clone = *this;
-    --_index;
+    --_offset;
     return clone;
   }
 
   friend CBufferIterator operator+(CBufferIterator lhsiter, difference_type n)
   {
-    lhsiter._index += n;
+    lhsiter._offset += n;
     return lhsiter;
   }
 
   friend CBufferIterator operator+(difference_type n, CBufferIterator rhsiter)
   {
-    rhsiter._index += n;
+    rhsiter._offset += n;
     return rhsiter;
   }
 
   CBufferIterator &operator+=(difference_type n)
   {
-    _index += n;
+    _offset += n;
     return *this;
   }
 
   friend CBufferIterator operator-(CBufferIterator lhsiter, difference_type n)
   {
-    lhsiter._index -= n;
+    lhsiter._offset -= n;
     return lhsiter;
   }
 
   friend difference_type operator-(const CBufferIterator &lhsiter, const CBufferIterator &rhsiter)
   {
-
-    return lhsiter._index - rhsiter._index;
+    return lhsiter._offset - rhsiter._offset;
   }
 
   CBufferIterator &operator-=(difference_type n)
   {
-    _index -= n;
+    _offset -= n;
     return *this;
   }
 
@@ -534,24 +496,24 @@ public:
   bool operator<(const CBufferIterator &other) const
   {
     if (!_comparable(other)) return false;
-    return ((_index + _offset) < (other._index + other._offset));
+    return ((_begin() + _offset) < (other._begin() + other._offset));
   }
 
   bool operator>(const CBufferIterator &other) const
   {
     if (!_comparable(other)) return false;
-    return ((_index + _offset) > (other._index + other._offset));
+    return ((_begin() + _offset) > (other._begin() + other._offset));
   }
 
   bool operator<=(const CBufferIterator &other) const
   {
     if (!_comparable(other)) return false;
-    return ((_index + _offset) <= (other._index + other._offset));
+    return ((_begin() + _offset) <= (other._begin() + other._offset));
   }
 
   bool operator>=(const CBufferIterator &other) const
   {
     if (!_comparable(other)) return false;
-    return ((_index + _offset) >= (other._index + other._offset));
+    return ((_begin() + _offset) >= (other._begin() + other._offset));
   }
 };
