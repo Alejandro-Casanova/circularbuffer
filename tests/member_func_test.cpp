@@ -135,7 +135,7 @@ TEST_F(CircularBufferTest, PopFrontTest)
     test_buff.pop_front();
     FAIL() << "Expected std::length_error";
   } catch (const std::length_error &err) {
-    EXPECT_EQ(err.what(), std::string("pop_front called on empty buffer"));
+    EXPECT_EQ(err.what(), std::string("Invalid operation on empty buffer"));
   }
 }
 
@@ -160,7 +160,7 @@ TEST_F(CircularBufferTest, FrontTest)
     test_buff.front() = "string0";
     FAIL() << "Expected std::length_error";
   } catch (const std::length_error &err) {
-    EXPECT_EQ(err.what(), std::string("front function called on empty buffer"));
+    EXPECT_EQ(err.what(), std::string("Invalid operation on empty buffer"));
   }
 }
 
@@ -184,7 +184,7 @@ TEST_F(CircularBufferTest, BackTest)
     test_buff.back() = "string0";
     FAIL() << "Expected std::length_error";
   } catch (const std::length_error &err) {
-    EXPECT_EQ(err.what(), std::string("back function called on empty buffer"));
+    EXPECT_EQ(err.what(), std::string("Invalid operation on empty buffer"));
   }
 }
 
@@ -212,7 +212,7 @@ TEST_F(CircularBufferTest, AtFunctionTest)
     test_buff.at(TEST_BUFFER_SIZE) = "test_string";
     FAIL() << "Expected std::out_of_range error";
   } catch (const std::out_of_range &err) {
-    EXPECT_EQ(err.what(), std::string("Index is out of Range of buffer size"));
+    EXPECT_EQ(err.what(), std::string("Index is out of range of buffer size"));
   }
   // test out of size
   test_buff.pop_front();
@@ -220,7 +220,7 @@ TEST_F(CircularBufferTest, AtFunctionTest)
     test_buff.at(TEST_BUFFER_SIZE - 1) = "test_string";
     FAIL() << "Expected std::out_of_range error";
   } catch (const std::out_of_range &err) {
-    EXPECT_EQ(err.what(), std::string("Index is out of Range of buffer size"));
+    EXPECT_EQ(err.what(), std::string("Index is out of range of buffer size"));
   }
 }
 
@@ -245,18 +245,18 @@ TEST_F(CircularBufferTest, AccessOperatorTest)
   for (int i = 0; i < TEST_BUFFER_SIZE; i++) EXPECT_EQ(test_buff[i], "test_string");
   // test out of bounds
   try {
-    test_buff[TEST_BUFFER_SIZE] = "test_string";
+    test_buff.at(TEST_BUFFER_SIZE) = "test_string";
     FAIL() << "Expected std::out_of_range error";
   } catch (const std::out_of_range &err) {
-    EXPECT_EQ(err.what(), std::string("Index is out of Range of buffer size"));
+    EXPECT_EQ(err.what(), std::string("Index is out of range of buffer size"));
   }
   // test out of size
   test_buff.pop_front();
   try {
-    test_buff[TEST_BUFFER_SIZE - 1] = "test_string";
+    test_buff.at(TEST_BUFFER_SIZE - 1) = "test_string";
     FAIL() << "Expected std::out_of_range error";
   } catch (const std::out_of_range &err) {
-    EXPECT_EQ(err.what(), std::string("Index is out of Range of buffer size"));
+    EXPECT_EQ(err.what(), std::string("Index is out of range of buffer size"));
   }
 }
 
@@ -279,14 +279,14 @@ TEST_F(CircularBufferTest, BeginIteratorTest)
     *it = "test_string";
     FAIL() << "Expected std::out_of_range error";
   } catch (const std::out_of_range &err) {
-    EXPECT_EQ(err.what(), std::string("Index is out of Range of buffer size"));
+    EXPECT_EQ(err.what(), std::string("Index is out of range of buffer size"));
   }
 
   try {
     std::string out_of_bound = *(const_it);
     FAIL() << "Expected std::out_of_range error";
   } catch (const std::out_of_range &err) {
-    EXPECT_EQ(err.what(), std::string("Index is out of Range of buffer size"));
+    EXPECT_EQ(err.what(), std::string("Index is out of range of buffer size"));
   }
 }
 
@@ -307,14 +307,14 @@ TEST_F(CircularBufferTest, RbeginIteratorTest)
     *it = "test_string";
     FAIL() << "Expected std::out_of_range error";
   } catch (const std::out_of_range &err) {
-    EXPECT_EQ(err.what(), std::string("Index is out of Range of buffer size"));
+    EXPECT_EQ(err.what(), std::string("Index is out of range of buffer size"));
   }
 
   try {
     std::string out_of_bound = *(const_it);
     FAIL() << "Expected std::out_of_range error";
   } catch (const std::out_of_range &err) {
-    EXPECT_EQ(err.what(), std::string("Index is out of Range of buffer size"));
+    EXPECT_EQ(err.what(), std::string("Index is out of range of buffer size"));
   }
 }
 
@@ -332,7 +332,7 @@ TEST_F(CircularBufferTest, CbeginIteratorTest)
     std::string out_of_bound = *(const_it);
     FAIL() << "Expected std::out_of_range error";
   } catch (const std::out_of_range &err) {
-    EXPECT_EQ(err.what(), std::string("Index is out of Range of buffer size"));
+    EXPECT_EQ(err.what(), std::string("Index is out of range of buffer size"));
   }
 }
 
@@ -355,14 +355,14 @@ TEST_F(CircularBufferTest, EndIteratorTest)
     *(--it) = "test_string";
     FAIL() << "Expected std::out_of_range error";
   } catch (const std::out_of_range &err) {
-    EXPECT_EQ(err.what(), std::string("Index is out of Range of buffer size"));
+    EXPECT_EQ(err.what(), std::string("Index is out of range of buffer size"));
   }
 
   try {
     std::string out_of_bound = *(--const_it);
     FAIL() << "Expected std::out_of_range error";
   } catch (const std::out_of_range &err) {
-    EXPECT_EQ(err.what(), std::string("Index is out of Range of buffer size"));
+    EXPECT_EQ(err.what(), std::string("Index is out of range of buffer size"));
   }
 }
 
@@ -383,14 +383,14 @@ TEST_F(CircularBufferTest, RendIteratorTest)
     *it = "test_string";
     FAIL() << "Expected std::out_of_range error";
   } catch (const std::out_of_range &err) {
-    EXPECT_EQ(err.what(), std::string("Index is out of Range of buffer size"));
+    EXPECT_EQ(err.what(), std::string("Index is out of range of buffer size"));
   }
 
   try {
     std::string out_of_bound = *(const_it);
     FAIL() << "Expected std::out_of_range error";
   } catch (const std::out_of_range &err) {
-    EXPECT_EQ(err.what(), std::string("Index is out of Range of buffer size"));
+    EXPECT_EQ(err.what(), std::string("Index is out of range of buffer size"));
   }
 }
 
@@ -408,6 +408,6 @@ TEST_F(CircularBufferTest, CendIteratorTest)
     std::string out_of_bound = *(--const_it);
     FAIL() << "Expected std::out_of_range error";
   } catch (const std::out_of_range &err) {
-    EXPECT_EQ(err.what(), std::string("Index is out of Range of buffer size"));
+    EXPECT_EQ(err.what(), std::string("Index is out of range of buffer size"));
   }
 }

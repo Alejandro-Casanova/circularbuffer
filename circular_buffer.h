@@ -33,10 +33,6 @@ using std::conditional;
 #include <utility>
 using std::move;
 
-// Unused includes??
-// #include <algorithm>
-// #include <memory>
-
 #if CBUF_USE_FREERTOS
 class FreeRTOSMutexWrapper
 {
@@ -119,14 +115,20 @@ public:
   const_reverse_iterator rend() const noexcept;
 	
 private:
+  friend iterator;
+  friend const_iterator;
+  friend reverse_iterator;
+  friend const_reverse_iterator;
+
   void _increment_bufferstate();
   void _decrement_bufferstate();
   
   bool _empty() const { return _size == 0; }
   bool _full() const { return _size == N; }
-  size_type _end() const { return (_begin + _size) % N; }
+  size_type _map_index(size_type index) const { return (_begin + index) % N; }
+  size_type _end() const { return _map_index(_size); }
 
-  std::array<value_type, N> _buff;
+  std::array<value_type, N> _buff = {};
   size_type _begin = 0;
   size_type _size = 0;
 
@@ -136,22 +138,29 @@ private:
   mutable std::mutex _mtx;
 #endif // CBUF_USE_FREERTOS
 
-  size_type _map_index(size_type index) const
+  void _ensure_in_range(size_type index) const
   {
+    static constexpr std::string_view error_message = "Index is out of range of buffer size";
     if (index >= _size) {
 #if CBUF_ENABLE_EXCEPTIONS
-      throw std::out_of_range("Index is out of Range of buffer size");
+      throw std::out_of_range(error_message.data());
 #else
-      assert(false && "Index is out of Range of buffer size");
+      assert(false && error_message.data());
 #endif
     }
-    return (_begin + index) % N;
   }
 
-  friend iterator;
-  friend const_iterator;
-  friend reverse_iterator;
-  friend const_reverse_iterator;
+  void _ensure_not_empty() const
+  {
+    static constexpr std::string_view error_message = "Invalid operation on empty buffer";
+    if (_empty()) {
+#if CBUF_ENABLE_EXCEPTIONS
+      throw std::length_error(error_message.data());
+#else
+      assert(false && error_message.data());
+#endif
+    }
+  }
 };
 
 template<typename T, std::size_t N> 
@@ -186,13 +195,7 @@ template<typename T, std::size_t N>
 inline typename CircularBuffer<T, N>::reference CircularBuffer<T, N>::front()
 {
   std::lock_guard _lck(_mtx);
-  if (_empty()) {
-#if CBUF_ENABLE_EXCEPTIONS
-    throw std::length_error("front function called on empty buffer");
-#else
-    assert(false && "front function called on empty buffer");
-#endif
-  }
+  _ensure_not_empty();
   return _buff[_begin];
 }
 
@@ -200,13 +203,7 @@ template<typename T, std::size_t N>
 inline typename CircularBuffer<T, N>::reference CircularBuffer<T, N>::back()
 {
   std::lock_guard _lck(_mtx);
-  if (_empty()) {
-#if CBUF_ENABLE_EXCEPTIONS
-    throw std::length_error("back function called on empty buffer");
-#else
-    assert(false && "back function called on empty buffer");
-#endif
-  }
+  _ensure_not_empty();
   return _end() > 0 ? _buff[_end() - 1] : _buff.back();
 }
 
@@ -214,13 +211,7 @@ template<typename T, std::size_t N>
 inline typename CircularBuffer<T, N>::const_reference CircularBuffer<T, N>::front() const
 {
   std::lock_guard _lck(_mtx);
-  if (_empty()) {
-#if CBUF_ENABLE_EXCEPTIONS
-    throw std::length_error("front function called on empty buffer");
-#else
-    assert(false && "front function called on empty buffer");
-#endif
-  }
+  _ensure_not_empty();
   return _buff[_begin];
 }
 
@@ -228,13 +219,7 @@ template<typename T, std::size_t N>
 inline typename CircularBuffer<T, N>::const_reference CircularBuffer<T, N>::back() const
 {
   std::lock_guard _lck(_mtx);
-  if (_empty()) {
-#if CBUF_ENABLE_EXCEPTIONS
-    throw std::length_error("back function called on empty buffer");
-#else
-    assert(false && "back function called on empty buffer");
-#endif
-  }
+  _ensure_not_empty();
   return _end() > 0 ? _buff[_end() - 1] : _buff.back();
 }
 
@@ -268,13 +253,7 @@ template<typename T, std::size_t N>
 inline void CircularBuffer<T, N>::pop_front()
 {
   std::lock_guard _lck(_mtx);
-  if (_empty()) {
-#if CBUF_ENABLE_EXCEPTIONS
-    throw std::length_error("pop_front called on empty buffer");
-#else
-    assert(false && "pop_front called on empty buffer");
-#endif
-  }
+  _ensure_not_empty();
   _decrement_bufferstate();
 }
 
@@ -304,6 +283,7 @@ template<typename T, std::size_t N>
 inline typename CircularBuffer<T, N>::reference CircularBuffer<T, N>::at(CircularBuffer<T, N>::size_type index)
 {
   std::lock_guard _lck(_mtx);
+  _ensure_in_range(index);
   return _buff[_map_index(index)];
 }
 
@@ -312,6 +292,7 @@ inline typename CircularBuffer<T, N>::const_reference CircularBuffer<T, N>::at(
   CircularBuffer<T, N>::size_type index) const
 {
   std::lock_guard _lck(_mtx);
+  _ensure_in_range(index);
   return _buff[_map_index(index)];
 }
 
@@ -400,6 +381,8 @@ public:
   using size_type         = typename cbuf::size_type;
 
 private:
+  friend class CircularBuffer<T, N>;
+
   CBufferIterator(cbuf_pointer ptrToBuffer, size_type offset) : _ptrToBuffer{ ptrToBuffer }, _offset{ offset } {}
 
   bool _comparable(const CBufferIterator &other) const { return (_ptrToBuffer == other._ptrToBuffer); }
@@ -408,15 +391,13 @@ private:
   cbuf_pointer _ptrToBuffer;
   size_type _offset;
 
-  friend class CircularBuffer<T, N>;
-
 public:
   reference operator*() const
   {
     if constexpr (isReverse) {
-      return (*_ptrToBuffer)[(_ptrToBuffer->size() - _offset - 1)];
+      return _ptrToBuffer->at(_ptrToBuffer->size() - _offset - 1);
     } else {
-      return (*_ptrToBuffer)[_offset];
+      return _ptrToBuffer->at(_offset);
     }
   }
 
@@ -424,9 +405,7 @@ public:
 
   reference operator[](size_t index) const
   {
-    auto iter = *this;
-    iter._offset += index;
-    return *iter;
+    return *(this + index);
   }
 
   CBufferIterator &operator++()
