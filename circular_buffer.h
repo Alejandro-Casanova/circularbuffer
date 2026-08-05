@@ -98,6 +98,7 @@ public:
   size_type buffer_size() const { return sizeof(value_type) * N; }
   const_pointer data() const { return _buff.data(); }
 
+  // Warning: function 'at' performs boundary checking, whereas operator[] does NOT.
   const_reference operator[](size_type index) const;
   reference operator[](size_type index);
   const_reference at(size_type index) const;
@@ -194,17 +195,14 @@ inline typename CircularBuffer<T, N>::size_type CircularBuffer<T, N>::size() con
 template<typename T, std::size_t N>
 inline typename CircularBuffer<T, N>::reference CircularBuffer<T, N>::front()
 {
-  std::lock_guard _lck(_mtx);
-  _ensure_not_empty();
-  return _buff[_begin];
+  // Avoid code duplication by applying item 3 from the 'Effective C++' book
+  return const_cast<reference>(static_cast<const CircularBuffer &>(*this).front());
 }
 
 template<typename T, std::size_t N>
 inline typename CircularBuffer<T, N>::reference CircularBuffer<T, N>::back()
 {
-  std::lock_guard _lck(_mtx);
-  _ensure_not_empty();
-  return _end() > 0 ? _buff[_end() - 1] : _buff.back();
+  return const_cast<reference>(static_cast<const CircularBuffer &>(*this).back());
 }
 
 template<typename T, std::size_t N>
@@ -267,8 +265,7 @@ inline void CircularBuffer<T, N>::_decrement_bufferstate()
 template<typename T, std::size_t N>
 inline typename CircularBuffer<T, N>::reference CircularBuffer<T, N>::operator[](CircularBuffer<T, N>::size_type index)
 {
-  std::lock_guard _lck(_mtx);
-  return _buff[_map_index(index)];
+  return const_cast<reference>(static_cast<const CircularBuffer &>(*this).operator[](index));
 }
 
 template<typename T, std::size_t N>
@@ -282,9 +279,7 @@ inline typename CircularBuffer<T, N>::const_reference CircularBuffer<T, N>::oper
 template<typename T, std::size_t N>
 inline typename CircularBuffer<T, N>::reference CircularBuffer<T, N>::at(CircularBuffer<T, N>::size_type index)
 {
-  std::lock_guard _lck(_mtx);
-  _ensure_in_range(index);
-  return _buff[_map_index(index)];
+  return const_cast<reference>(static_cast<const CircularBuffer &>(*this).at(index));
 }
 
 template<typename T, std::size_t N>
